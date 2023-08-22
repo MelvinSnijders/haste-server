@@ -14,8 +14,12 @@
   "logging": [
     {
       "level": "verbose",
-      "type": "Console",
-      "colorize": true
+      "type": "Console"
+    },
+    {
+      "level": "verbose",
+      "type": "File",
+      "filename": "./logs/verbose.log"
     }
   ],
 
@@ -24,12 +28,8 @@
   },
 
   "rateLimits": {
-    "categories": {
-      "normal": {
-        "totalRequests": 500,
-        "every": 60000
-      }
-    }
+    "windowMs": 60000,
+    "max": 500
   },
 
   "storage": {

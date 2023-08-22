@@ -11,18 +11,20 @@ var DocumentHandler = function(options) {
   this.maxLength = options.maxLength; // none by default
   this.store = options.store;
   this.keyGenerator = options.keyGenerator;
+  this.logger = options.logger || winston;
 };
 
 DocumentHandler.defaultKeyLength = 10;
 
 // Handle retrieving a document
 DocumentHandler.prototype.handleGet = function(request, response, config) {
+  var _this = this;
   const key = request.params.id.split('.')[0];
   const skipExpire = !!config.documents[key];
 
   this.store.get(key, function(ret) {
     if (ret) {
-      winston.verbose('retrieved document', { key: key });
+      _this.logger.verbose('retrieved document', { key: key });
       response.writeHead(200, { 'content-type': 'application/json' });
       if (request.method === 'HEAD') {
         response.end();
@@ -31,7 +33,7 @@ DocumentHandler.prototype.handleGet = function(request, response, config) {
       }
     }
     else {
-      winston.warn('document not found', { key: key });
+      _this.logger.warn('document not found', { key: key });
       response.writeHead(404, { 'content-type': 'application/json' });
       if (request.method === 'HEAD') {
         response.end();
@@ -44,12 +46,13 @@ DocumentHandler.prototype.handleGet = function(request, response, config) {
 
 // Handle retrieving the raw version of a document
 DocumentHandler.prototype.handleRawGet = function(request, response, config) {
+  var _this = this;
   const key = request.params.id.split('.')[0];
   const skipExpire = !!config.documents[key];
 
   this.store.get(key, function(ret) {
     if (ret) {
-      winston.verbose('retrieved raw document', { key: key });
+      _this.logger.verbose('retrieved raw document', { key: key });
       response.writeHead(200, { 'content-type': 'text/plain; charset=UTF-8' });
       if (request.method === 'HEAD') {
         response.end();
@@ -58,7 +61,7 @@ DocumentHandler.prototype.handleRawGet = function(request, response, config) {
       }
     }
     else {
-      winston.warn('raw document not found', { key: key });
+      _this.logger.warn('raw document not found', { key: key });
       response.writeHead(404, { 'content-type': 'application/json' });
       if (request.method === 'HEAD') {
         response.end();
@@ -80,7 +83,7 @@ DocumentHandler.prototype.handlePost = function (request, response) {
     // Check length
     if (_this.maxLength && buffer.length > _this.maxLength) {
       cancelled = true;
-      winston.warn('document >maxLength', { maxLength: _this.maxLength });
+      _this.logger.warn('document >maxLength', { maxLength: _this.maxLength });
       response.writeHead(400, { 'content-type': 'application/json' });
       response.end(
         JSON.stringify({ message: 'Document exceeds maximum length.' })
@@ -91,12 +94,12 @@ DocumentHandler.prototype.handlePost = function (request, response) {
     _this.chooseKey(function (key) {
       _this.store.set(key, buffer, function (res) {
         if (res) {
-          winston.verbose('added document', { key: key });
+          _this.logger.verbose('added document', { key: key });
           response.writeHead(200, { 'content-type': 'application/json' });
           response.end(JSON.stringify({ key: key }));
         }
         else {
-          winston.verbose('error adding document');
+          _this.logger.verbose('error adding document');
           response.writeHead(500, { 'content-type': 'application/json' });
           response.end(JSON.stringify({ message: 'Error adding document.' }));
         }
@@ -127,7 +130,7 @@ DocumentHandler.prototype.handlePost = function (request, response) {
       onSuccess();
     });
     request.on('error', function (error) {
-      winston.error('connection error: ' + error.message);
+      _this.logger.error('connection error: ' + error.message);
       response.writeHead(500, { 'content-type': 'application/json' });
       response.end(JSON.stringify({ message: 'Connection error.' }));
       cancelled = true;
